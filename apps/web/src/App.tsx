@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './components/Auth/AuthProvider';
 import { AuthPage } from './components/Auth/AuthPage';
-import { Header } from './components/common/Header';
+import { AppShell } from './components/Navigation';
 import { RouteBuilder } from './components/RouteBuilder/RouteBuilder';
 import { ProfileBuilder } from './components/LayoutBuilder/ProfileBuilder';
 import { RoutesPage } from './components/Routes/RoutesPage';
@@ -16,6 +16,7 @@ import {
   DocsFAQ,
   WidgetReference,
 } from './components/Docs';
+import { ProfilePage } from './components/Profile';
 
 function HomePage() {
   return (
@@ -107,14 +108,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main>{children}</main>
-    </div>
-  );
-}
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -137,9 +130,9 @@ export default function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <HomePage />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -147,9 +140,9 @@ export default function App() {
         path="/routes"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <RoutesPage />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -157,9 +150,9 @@ export default function App() {
         path="/routes/new"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <RouteBuilder />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -167,9 +160,9 @@ export default function App() {
         path="/routes/:id"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <RouteDetailPage />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -177,9 +170,9 @@ export default function App() {
         path="/layouts"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <ProfileBuilder />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -187,9 +180,9 @@ export default function App() {
         path="/collections"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <CollectionsPage />
-            </AppLayout>
+            </AppShell>
           </ProtectedRoute>
         }
       />
@@ -197,9 +190,19 @@ export default function App() {
         path="/collections/:id"
         element={
           <ProtectedRoute>
-            <AppLayout>
+            <AppShell>
               <CollectionDetailPage />
-            </AppLayout>
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <ProfilePage />
+            </AppShell>
           </ProtectedRoute>
         }
       />

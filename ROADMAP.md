@@ -1510,6 +1510,96 @@ performance_metrics (daily aggregates)
 
 ---
 
+## Phase 0: Mobile App Foundation (Expo)
+
+The mobile app is the core product - a bike computer that runs on iOS and Android. This phase focuses on building a functional mobile app before adding advanced features.
+
+### Core Mobile Features
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Expo Setup | Configure Expo with proper native modules | **P0** |
+| Map Screen | Mapbox map with current location | **P0** |
+| Data Screen | Widget grid displaying sensor data | **P0** |
+| BLE Sensor Connection | Heart rate, power, speed, cadence | **P0** |
+| Basic Ride Recording | GPS tracking with start/pause/stop | **P0** |
+| Profile Sync | Download layouts/routes from web | **P0** |
+| Offline Support | Cache routes and layouts locally | High |
+| Screen Keep-Awake | Prevent screen sleep during rides | High |
+| Background Location | Continue tracking when app backgrounded | High |
+| Haptic Feedback | Vibration for lap markers, alerts | Medium |
+| Voice Announcements | Audio for metrics at intervals | Medium |
+
+### Mobile Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Framework | React Native + Expo |
+| Navigation | React Navigation (tabs + stack) |
+| Maps | Mapbox GL (react-native-mapbox-gl) |
+| Bluetooth | react-native-ble-plx |
+| Location | expo-location |
+| Storage | AsyncStorage + expo-file-system |
+| State | Zustand or Redux Toolkit |
+
+### Mobile App Screens
+
+```
+├── Auth
+│   └── LoginScreen
+├── Main Tabs
+│   ├── MapScreen (route display + navigation)
+│   ├── DataScreen (widget grid)
+│   └── SettingsScreen
+├── Modals
+│   ├── SensorPairingScreen
+│   ├── ProfileSelectScreen
+│   └── RouteSelectScreen
+└── Recording
+    ├── PreRideScreen
+    ├── ActiveRideScreen (overlays data/map)
+    └── RideSummaryScreen
+```
+
+### BLE Sensor Services
+
+| Sensor Type | BLE Service UUID | Characteristics |
+|-------------|------------------|-----------------|
+| Heart Rate | 0x180D | HR Measurement (0x2A37) |
+| Cycling Power | 0x1818 | Power Measurement (0x2A63) |
+| Speed/Cadence | 0x1816 | CSC Measurement (0x2A5B) |
+| SRAM AXS | Proprietary | Gear position, battery |
+
+### Implementation Steps
+
+1. **Expo Configuration**
+   - Set up Expo dev build (not Expo Go - need native modules)
+   - Configure app.json with proper permissions
+   - Add Mapbox token configuration
+   - Set up EAS Build for iOS/Android
+
+2. **Core Screens**
+   - Implement MapScreen with Mapbox
+   - Implement DataScreen with widget grid
+   - Wire up navigation
+
+3. **BLE Integration**
+   - Implement BLEManager service
+   - Add sensor scanning and pairing
+   - Create sensor data streams
+
+4. **Ride Recording**
+   - Implement location tracking
+   - Create ride state machine
+   - Add local storage for ride data
+
+5. **Sync & Offline**
+   - Fetch layouts from Supabase
+   - Cache for offline use
+   - Sync completed rides
+
+---
+
 ## Technical Considerations
 
 ### Mobile App Architecture Updates
