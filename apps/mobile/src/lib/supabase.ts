@@ -1,19 +1,35 @@
-// Polyfill must be first - required for Supabase on React Native
-import 'react-native-url-polyfill/auto';
-
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// Supabase client with lazy initialization
+// The polyfill must be loaded before this - see src/setup.ts
 import Constants from 'expo-constants';
 
-const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
-const supabasePublishableKey = Constants.expoConfig?.extra?.supabasePublishableKey || '';
+let _supabase: any = null;
 
-if (!supabaseUrl || !supabasePublishableKey) {
-  console.warn(
-    'Missing Supabase config. Check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env'
-  );
+export function getSupabase(): any {
+  if (!_supabase) {
+    // Lazy require to ensure polyfill loads first
+    const { createClient } = require('@supabase/supabase-js');
+    const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
+    const supabasePublishableKey = Constants.expoConfig?.extra?.supabasePublishableKey || '';
+
+    if (!supabaseUrl || !supabasePublishableKey) {
+      console.warn(
+        'Missing Supabase config. Check SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in .env'
+      );
+    }
+
+    _supabase = createClient(supabaseUrl, supabasePublishableKey);
+  }
+  return _supabase;
 }
 
-export const supabase: SupabaseClient = createClient(supabaseUrl, supabasePublishableKey);
+// Backward compatible export - calls getSupabase() on first access
+export const supabase: any = new Proxy({}, {
+  get(_, prop) {
+    const client = getSupabase();
+    const value = client[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
 
 // Database types matching our schema
 export interface DbLayout {

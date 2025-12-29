@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { Widget, WIDGET_DEFINITIONS, LCD_COLORS } from '@peloton/shared';
-import { supabase, DbLayout } from '../lib/supabase';
+// Supabase temporarily disabled - using default layout
+// import { supabase, DbLayout } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -32,34 +33,17 @@ export function DataScreen() {
   }, [user]);
 
   const loadActiveLayout = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('layouts')
-      .select('*')
-      .eq('is_active', true)
-      .single();
-
-    if (data && !error) {
-      const dbLayout = data as DbLayout;
-      setLayout(dbLayout.widgets as Widget[]);
-    } else {
-      // Use default layout if none active
-      setLayout([
-        { id: 'w1', type: 'speed', x: 0, y: 0, width: 1, height: 1 },
-        { id: 'w2', type: 'heart_rate', x: 1, y: 0, width: 1, height: 1 },
-        { id: 'w3', type: 'power', x: 2, y: 0, width: 1, height: 1 },
-        { id: 'w4', type: 'time', x: 0, y: 1, width: 2, height: 1 },
-        { id: 'w5', type: 'distance', x: 2, y: 1, width: 1, height: 1 },
-        { id: 'w6', type: 'cadence', x: 0, y: 2, width: 1, height: 1 },
-        { id: 'w7', type: 'elevation', x: 1, y: 2, width: 1, height: 1 },
-        { id: 'w8', type: 'gear', x: 2, y: 2, width: 1, height: 1 },
-      ]);
-    }
-
+    // Supabase temporarily disabled - use default layout
+    setLayout([
+      { id: 'w1', type: 'speed', x: 0, y: 0, width: 1, height: 1 },
+      { id: 'w2', type: 'heart_rate', x: 1, y: 0, width: 1, height: 1 },
+      { id: 'w3', type: 'power', x: 2, y: 0, width: 1, height: 1 },
+      { id: 'w4', type: 'time', x: 0, y: 1, width: 2, height: 1 },
+      { id: 'w5', type: 'distance', x: 2, y: 1, width: 1, height: 1 },
+      { id: 'w6', type: 'cadence', x: 0, y: 2, width: 1, height: 1 },
+      { id: 'w7', type: 'elevation', x: 1, y: 2, width: 1, height: 1 },
+      { id: 'w8', type: 'gear', x: 2, y: 2, width: 1, height: 1 },
+    ]);
     setLoading(false);
   };
 
