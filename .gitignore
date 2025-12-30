@@ -59,3 +59,10 @@ yarn-error.log*
 .cache/
 tmp/
 temp/
+
+# iOS build artifacts
+apps/mobile/ios/build/
+apps/mobile/ios/.xcode.env.local
+
+# Supabase temp
+supabase/.temp/
