@@ -159,9 +159,14 @@ export function useActiveProfile(): UseActiveProfileResult {
           }
         }
       )
-      .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
+      .subscribe((status, err) => {
+        console.log('[Realtime] Subscription status:', status, err?.message || '');
         setIsConnected(status === 'SUBSCRIBED');
+
+        // If there's a channel error, the realtime publication might not be enabled
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('[Realtime] Channel error - ensure realtime is enabled for data_profiles and profile_screens tables');
+        }
       });
 
     channelRef.current = channel;

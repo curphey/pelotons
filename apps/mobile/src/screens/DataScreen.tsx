@@ -72,30 +72,6 @@ const HR_ZONE_WIDGETS = [
   'heart_rate', 'heart_rate_zone', 'heart_rate_percent_max',
 ];
 
-// Default layout if no profile is synced
-const DEFAULT_LAYOUT: Widget[] = [
-  { id: 'w1', type: 'speed', x: 0, y: 0, width: 1, height: 1 },
-  { id: 'w2', type: 'heart_rate', x: 1, y: 0, width: 1, height: 1 },
-  { id: 'w3', type: 'power', x: 2, y: 0, width: 1, height: 1 },
-  { id: 'w4', type: 'time_elapsed', x: 0, y: 1, width: 2, height: 1 },
-  { id: 'w5', type: 'distance', x: 2, y: 1, width: 1, height: 1 },
-  { id: 'w6', type: 'cadence', x: 0, y: 2, width: 1, height: 1 },
-  { id: 'w7', type: 'elevation', x: 1, y: 2, width: 1, height: 1 },
-  { id: 'w8', type: 'gear', x: 2, y: 2, width: 1, height: 1 },
-];
-
-const DEFAULT_SCREEN: ProfileScreen = {
-  id: 'default',
-  profileId: 'default',
-  name: 'Default',
-  screenType: 'data',
-  position: 0,
-  gridColumns: 3,
-  gridRows: 4,
-  widgets: DEFAULT_LAYOUT,
-  createdAt: '',
-  updatedAt: '',
-};
 
 export function DataScreen() {
   const { profile, loading: profileLoading, isConnected } = useActiveProfile();
@@ -103,9 +79,9 @@ export function DataScreen() {
   const [currentScreenIndex, setCurrentScreenIndex] = useState(0);
   const translateX = useRef(new Animated.Value(0)).current;
 
-  // Get screens from profile, or use default
-  const screens: ProfileScreen[] = profile?.screens.filter(s => s.screenType === 'data') || [DEFAULT_SCREEN];
-  const currentScreen = screens[currentScreenIndex] || DEFAULT_SCREEN;
+  // Get data screens from profile
+  const screens: ProfileScreen[] = profile?.screens.filter(s => s.screenType === 'data') || [];
+  const currentScreen = screens[currentScreenIndex];
 
   const goToScreen = useCallback((index: number) => {
     if (index < 0 || index >= screens.length) return;
@@ -156,12 +132,31 @@ export function DataScreen() {
     );
   }
 
+  // No profile or no screens configured
+  if (!profile || screens.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyStateTitle}>No Layout Configured</Text>
+          <Text style={styles.emptyStateText}>
+            Create a data profile in the web app to customize your display.
+          </Text>
+          <Text style={styles.emptyStateUrl}>pelotons.cc/layout</Text>
+          <View style={[styles.syncIndicator, isConnected && styles.syncIndicatorConnected, styles.emptyStateSyncIndicator]} />
+          <Text style={styles.emptyStateSyncText}>
+            {isConnected ? 'Connected - changes will sync automatically' : 'Connecting...'}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* Screen name */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.screenName}>{currentScreen.name}</Text>
+          <Text style={styles.screenName}>{currentScreen?.name || 'Data'}</Text>
           {/* Sync indicator */}
           <View style={[styles.syncIndicator, isConnected && styles.syncIndicatorConnected]} />
         </View>
@@ -441,5 +436,38 @@ const styles = StyleSheet.create({
     backgroundColor: LCD_COLORS.text,
     opacity: 1,
     transform: [{ scale: 1.25 }],
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: LCD_COLORS.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: LCD_COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  emptyStateUrl: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: LCD_COLORS.text,
+    marginBottom: 32,
+  },
+  emptyStateSyncIndicator: {
+    marginBottom: 8,
+  },
+  emptyStateSyncText: {
+    fontSize: 12,
+    color: LCD_COLORS.textSecondary,
   },
 });
