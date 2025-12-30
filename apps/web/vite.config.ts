@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       'import.meta.env.MAPBOX_TOKEN': JSON.stringify(env.MAPBOX_TOKEN),
     },
     optimizeDeps: {
-      include: ['@peloton/shared'],
+      exclude: ['@peloton/shared'],
     },
     build: {
       commonjsOptions: {
