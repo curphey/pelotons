@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT unique_user_profile UNIQUE (user_id)
+  CONSTRAINT user_profiles_user_id_unique UNIQUE (user_id)
 );
 
 COMMENT ON TABLE user_profiles IS 'Public profile information for social features';
