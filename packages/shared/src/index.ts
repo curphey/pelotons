@@ -8,6 +8,7 @@ export * from './types/profile';
 export * from './types/athlete';
 export * from './types/bike';
 export * from './types/rwgps';
+export * from './types/social';
 
 // Constants
 export * from './constants/bluetooth';

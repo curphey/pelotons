@@ -112,6 +112,45 @@ function DocsIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function FeedIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+      />
+    </svg>
+  );
+}
+
+function UsersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+      />
+    </svg>
+  );
+}
+
+function InviteIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    </svg>
+  );
+}
+
 function BikeIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" {...props}>
@@ -128,6 +167,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Main',
     items: [
       { id: 'dashboard', label: 'Dashboard', path: '/', icon: DashboardIcon, exact: true },
+      { id: 'feed', label: 'Activity Feed', path: '/feed', icon: FeedIcon },
       { id: 'routes', label: 'Routes', path: '/routes', icon: RoutesIcon },
       { id: 'collections', label: 'Collections', path: '/collections', icon: CollectionsIcon },
       { id: 'layouts', label: 'Layouts', path: '/layouts', icon: LayoutsIcon },
@@ -150,3 +190,13 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+// Admin section - shown conditionally based on user role
+export const ADMIN_SECTION: NavSection = {
+  id: 'admin',
+  label: 'Admin',
+  items: [
+    { id: 'admin-users', label: 'Users', path: '/admin/users', icon: UsersIcon },
+    { id: 'admin-invites', label: 'Invites', path: '/admin/invites', icon: InviteIcon },
+  ],
+};

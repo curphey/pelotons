@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { NAV_SECTIONS, NavItem } from './navConfig';
+import { NAV_SECTIONS, ADMIN_SECTION, NavItem } from './navConfig';
+import { useAdmin } from '@/hooks/useAdmin';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -58,6 +59,7 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
 
 export function Sidebar({ collapsed, onToggleCollapse, mobile, onClose }: SidebarProps) {
   const location = useLocation();
+  const { isAdmin } = useAdmin();
 
   const isActive = (item: NavItem) => {
     if (item.exact) {
@@ -71,6 +73,9 @@ export function Sidebar({ collapsed, onToggleCollapse, mobile, onClose }: Sideba
       onClose();
     }
   };
+
+  // Combine nav sections with admin section if user is admin
+  const allSections = isAdmin ? [...NAV_SECTIONS, ADMIN_SECTION] : NAV_SECTIONS;
 
   return (
     <aside
@@ -97,7 +102,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobile, onClose }: Sideba
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-6">
-        {NAV_SECTIONS.map((section) => (
+        {allSections.map((section) => (
           <div key={section.id}>
             {!collapsed && (
               <h3 className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">

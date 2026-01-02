@@ -19,6 +19,9 @@ import {
 import { ProfilePage } from './components/Profile';
 import { BikeList, BikeEditor, BikeDetail, BikeWizard } from './components/ServiceCourse';
 import { SettingsPage, RwgpsCallback } from './components/Settings';
+import { FeedPage } from './components/Feed';
+import { UserProfilePage } from './components/Users';
+import { AdminRoute, UsersPage, InvitesPage } from './components/Admin';
 
 function HomePage() {
   return (
@@ -266,6 +269,48 @@ export default function App() {
               <BikeEditor />
             </AppShell>
           </ProtectedRoute>
+        }
+      />
+      {/* Social Features */}
+      <Route
+        path="/feed"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <FeedPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users/:username"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <UserProfilePage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      {/* Admin Routes */}
+      <Route
+        path="/admin/users"
+        element={
+          <AdminRoute>
+            <AppShell>
+              <UsersPage />
+            </AppShell>
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/invites"
+        element={
+          <AdminRoute>
+            <AppShell>
+              <InvitesPage />
+            </AppShell>
+          </AdminRoute>
         }
       />
       {/* Public Documentation Routes */}
