@@ -4,13 +4,17 @@ import {
   ProfileScreen,
   DEVICE_PRESETS,
   DEVICE_PRESET_LIST,
+  type ScreenTemplate,
 } from '@peloton/shared';
+import { PhoneSimulator } from './PhoneSimulator';
+import { TemplateGallery } from './TemplateGallery';
 
 interface ProfileEditorProps {
   profile: DataProfileWithScreens;
   onUpdateProfile: (profileId: string, updates: { name?: string; deviceType?: string }) => void;
   onSelectScreen: (screen: ProfileScreen) => void;
   onAddScreen: (screenType: 'data' | 'map') => void;
+  onAddScreenFromTemplate: (template: ScreenTemplate) => void;
   onDeleteScreen: (screenId: string) => void;
   onReorderScreens: (screenIds: string[]) => void;
 }
@@ -20,11 +24,16 @@ export function ProfileEditor({
   onUpdateProfile,
   onSelectScreen,
   onAddScreen,
+  onAddScreenFromTemplate,
   onDeleteScreen,
 }: ProfileEditorProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState(profile.name);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+
+  const devicePreset = DEVICE_PRESETS[profile.deviceType];
+  const targetGrid = devicePreset?.suggestedGrid || { columns: 3, rows: 4 };
 
   const handleSaveName = () => {
     if (editName.trim() && editName !== profile.name) {
@@ -38,9 +47,12 @@ export function ProfileEditor({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      {/* Profile Settings */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <div className="h-full flex">
+      {/* Left side - Settings & Screens */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-xl mx-auto">
+          {/* Profile Settings */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
         <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">
           Profile Settings
         </h2>
@@ -138,7 +150,7 @@ export function ProfileEditor({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowAddMenu(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                   <button
                     onClick={() => {
                       onAddScreen('data');
@@ -149,14 +161,29 @@ export function ProfileEditor({
                     <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7" />
                     </svg>
-                    Data Screen
+                    Blank Data Screen
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowAddMenu(false);
+                      setShowTemplateGallery(true);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100"
+                  >
+                    <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                    <span>
+                      From Template...
+                      <span className="text-xs text-gray-400 ml-1">NEW</span>
+                    </span>
                   </button>
                   <button
                     onClick={() => {
                       onAddScreen('map');
                       setShowAddMenu(false);
                     }}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 rounded-b-lg flex items-center gap-2 border-t border-gray-100"
                   >
                     <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -245,6 +272,36 @@ export function ProfileEditor({
           Users will scroll through screens in this order while riding. Drag to reorder.
         </p>
       </div>
+        </div>
+      </div>
+
+      {/* Right side - Phone Simulator */}
+      <div className="w-80 bg-gray-50 border-l border-gray-200 flex flex-col">
+        <div className="p-4 border-b border-gray-200 bg-white">
+          <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+            Preview
+          </h2>
+          <p className="text-xs text-gray-400 mt-1">
+            See how your screens will look on your device
+          </p>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+          <PhoneSimulator
+            deviceType={profile.deviceType}
+            screens={profile.screens}
+            onScreenSelect={onSelectScreen}
+            scale={3}
+          />
+        </div>
+      </div>
+
+      {/* Template Gallery Modal */}
+      <TemplateGallery
+        isOpen={showTemplateGallery}
+        onClose={() => setShowTemplateGallery(false)}
+        onSelectTemplate={onAddScreenFromTemplate}
+        targetGrid={targetGrid}
+      />
     </div>
   );
 }

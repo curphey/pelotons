@@ -60,6 +60,9 @@ yarn-error.log*
 tmp/
 temp/
 
+# Vercel
+.vercel/
+
 # iOS build artifacts
 apps/mobile/ios/build/
 apps/mobile/ios/.xcode.env.local

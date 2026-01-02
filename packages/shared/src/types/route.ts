@@ -19,6 +19,10 @@ export interface Route {
   routeCoordinates?: [number, number][]; // [lng, lat] pairs
   createdAt: string;
   updatedAt: string;
+  // RideWithGPS sync fields
+  rwgpsId?: number;
+  rwgpsSyncedAt?: string;
+  rwgpsSyncDirection?: 'push' | 'pull' | 'both';
 }
 
 export interface RouteInsert {

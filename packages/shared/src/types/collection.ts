@@ -7,6 +7,9 @@ export interface RouteCollection {
   description?: string;
   createdAt: string;
   updatedAt: string;
+  // RideWithGPS sync fields
+  rwgpsId?: number;
+  rwgpsSyncedAt?: string;
 }
 
 export interface RouteCollectionInsert {

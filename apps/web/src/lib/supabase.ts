@@ -66,6 +66,10 @@ export interface DbRoute {
   route_coordinates: Coordinate[] | null;
   created_at: string;
   updated_at: string;
+  // RideWithGPS sync fields
+  rwgps_id: number | null;
+  rwgps_synced_at: string | null;
+  rwgps_sync_direction: 'push' | 'pull' | 'both' | null;
 }
 
 /**
@@ -115,6 +119,24 @@ export interface DbRouteCollection {
   name: string;
   description: string | null;
   created_at: string;
+  updated_at: string;
+  // RideWithGPS sync fields
+  rwgps_id: number | null;
+  rwgps_synced_at: string | null;
+}
+
+/**
+ * RideWithGPS OAuth connections table
+ */
+export interface DbRwgpsConnection {
+  id: string;
+  user_id: string;
+  rwgps_user_id: number;
+  rwgps_username: string | null;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  connected_at: string;
   updated_at: string;
 }
 

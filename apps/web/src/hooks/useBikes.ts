@@ -28,6 +28,7 @@ interface UseBikesReturn {
   updateBike: (id: string, data: Partial<BikeInput>) => Promise<boolean>;
   deleteBike: (id: string) => Promise<boolean>;
   setDefaultBike: (id: string) => Promise<boolean>;
+  createGeometry: (bikeId: string, data: BikeGeometryInput) => Promise<boolean>;
   refetch: () => Promise<void>;
 }
 
@@ -164,6 +165,58 @@ export function useBikes(): UseBikesReturn {
     return updateBike(id, { isDefault: true });
   }, [updateBike]);
 
+  const createGeometry = useCallback(async (bikeId: string, data: BikeGeometryInput): Promise<boolean> => {
+    if (!user) {
+      console.error('createGeometry: No user');
+      return false;
+    }
+
+    try {
+      setError(null);
+
+      const dbData = {
+        bike_id: bikeId,
+        stack_mm: data.stackMm ?? null,
+        reach_mm: data.reachMm ?? null,
+        seat_tube_length_mm: data.seatTubeLengthMm ?? null,
+        seat_tube_angle: data.seatTubeAngle ?? null,
+        effective_top_tube_mm: data.effectiveTopTubeMm ?? null,
+        head_tube_length_mm: data.headTubeLengthMm ?? null,
+        head_tube_angle: data.headTubeAngle ?? null,
+        fork_rake_mm: data.forkRakeMm ?? null,
+        fork_axle_to_crown_mm: data.forkAxleToCrownMm ?? null,
+        trail_mm: data.trailMm ?? null,
+        chainstay_length_mm: data.chainstayLengthMm ?? null,
+        wheelbase_mm: data.wheelbaseMm ?? null,
+        bb_drop_mm: data.bbDropMm ?? null,
+        bb_height_mm: data.bbHeightMm ?? null,
+        standover_height_mm: data.standoverHeightMm ?? null,
+        source: data.source ?? 'manual',
+        imported_at: data.source === 'geometry_geeks' ? new Date().toISOString() : null,
+      };
+
+      console.log('createGeometry: Saving to database:', dbData);
+
+      const { data: result, error: upsertError } = await supabase
+        .from('bike_geometries')
+        .upsert(dbData, { onConflict: 'bike_id' })
+        .select()
+        .single();
+
+      if (upsertError) {
+        console.error('createGeometry: Database error:', upsertError);
+        throw upsertError;
+      }
+
+      console.log('createGeometry: Success:', result);
+      return true;
+    } catch (err) {
+      console.error('Error creating geometry:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create geometry');
+      return false;
+    }
+  }, [user]);
+
   return {
     bikes,
     loading,
@@ -172,6 +225,7 @@ export function useBikes(): UseBikesReturn {
     updateBike,
     deleteBike,
     setDefaultBike,
+    createGeometry,
     refetch: fetchBikes,
   };
 }

@@ -7,6 +7,8 @@ import {
   Widget,
   DEVICE_PRESETS,
   DEFAULT_DEVICE,
+  type ScreenTemplate,
+  adaptTemplateToGrid,
 } from '@peloton/shared';
 import { ProfileList } from './ProfileList';
 import { ProfileEditor } from './ProfileEditor';
@@ -168,6 +170,43 @@ function ProfileBuilderInner() {
     }
   };
 
+  // Add screen from template
+  const handleAddScreenFromTemplate = async (template: ScreenTemplate) => {
+    if (!selectedProfile) return;
+
+    const device = DEVICE_PRESETS[selectedProfile.deviceType] || DEVICE_PRESETS[DEFAULT_DEVICE];
+    const { columns, rows } = device.suggestedGrid;
+
+    // Adapt template widgets to the target grid
+    const { widgets, warnings } = adaptTemplateToGrid(template, columns, rows);
+
+    // Show warning if some widgets won't fit
+    if (warnings.length > 0) {
+      const proceed = window.confirm(
+        `Some widgets from the template won't fit in your ${columns}×${rows} grid:\n\n` +
+          warnings.join('\n') +
+          '\n\nDo you want to continue with the widgets that fit?'
+      );
+      if (!proceed) return;
+    }
+
+    const newScreen = await addScreen({
+      profileId: selectedProfile.id,
+      name: template.name,
+      screenType: 'data',
+      gridColumns: columns,
+      gridRows: rows,
+      widgets,
+    });
+
+    if (newScreen) {
+      setSelectedProfile({
+        ...selectedProfile,
+        screens: [...selectedProfile.screens, newScreen],
+      });
+    }
+  };
+
   // Update screen
   const handleUpdateScreen = async (
     screenId: string,
@@ -310,6 +349,7 @@ function ProfileBuilderInner() {
             onUpdateProfile={handleUpdateProfile}
             onSelectScreen={handleSelectScreen}
             onAddScreen={handleAddScreen}
+            onAddScreenFromTemplate={handleAddScreenFromTemplate}
             onDeleteScreen={handleDeleteScreen}
             onReorderScreens={handleReorderScreens}
           />

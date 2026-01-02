@@ -50,6 +50,25 @@ athlete_profiles
 ├── vo2max_estimate  DECIMAL
 └── updated_at       TIMESTAMP
 
+-- Body measurements for bike fitting (Zinn-style)
+body_measurements
+├── id               UUID PRIMARY KEY
+├── user_id          UUID REFERENCES auth.users
+├── measured_at      TIMESTAMP
+├── source           TEXT ('manual' | 'lidar' | 'fit_file' | 'retul')
+├── inseam_mm        INTEGER    -- Floor to crotch (book method)
+├── torso_length_mm  INTEGER    -- Saddle to sternal notch
+├── arm_length_mm    INTEGER    -- Acromion to wrist crease
+├── forearm_length_mm INTEGER   -- Elbow to fingertip
+├── shoulder_width_mm INTEGER   -- Acromion to acromion
+├── thigh_length_mm  INTEGER    -- Greater trochanter to knee center
+├── lower_leg_mm     INTEGER    -- Knee center to floor
+├── foot_length_mm   INTEGER    -- Heel to toe
+├── sit_bones_mm     INTEGER    -- Ischial tuberosity width
+├── flexibility      TEXT       -- 'limited' | 'average' | 'good' | 'excellent'
+├── notes            TEXT
+└── is_current       BOOLEAN    -- Most recent measurement set
+
 weight_history
 ├── id               UUID PRIMARY KEY
 ├── user_id          UUID REFERENCES auth.users
@@ -798,16 +817,63 @@ interface FitCalculation {
 
 Import body measurements from Zinn bike fit system and calculate precise bike setup positions when combined with frame geometry.
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Zinn File Upload | Parse .zinn or exported fit files | High |
-| Body Measurements | Store inseam, torso, arm, shoulder measurements | High |
-| Fit Calculation | Calculate positions from Zinn + geometry | High |
-| Multi-Bike Fit | Apply measurements to different frames | Medium |
-| Fit Comparison | Compare calculated vs current setup | Medium |
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Retül/Zinn File Upload | Parse Retül PDF, .zinn, or exported fit files | High | In Progress |
+| Body Measurements | Store inseam, torso, arm, shoulder measurements | High | |
+| Fit Calculation | Calculate positions from measurements + geometry | High | In Progress |
+| **Visual Bike Fit Diagram** | Interactive SVG showing frame, fit position, and rider silhouette | High | **In Progress** - Basic diagram working, geometry validation and scaling refinements needed |
+| Multi-Bike Fit | Apply measurements to different frames | Medium | |
+| Fit Comparison | Compare calculated vs current setup visually | Medium |
 | Cleat Position | Shoe/cleat setup recommendations | Medium |
 | Fit History | Track changes over time | Low |
-| Export Fit Sheet | PDF with all measurements and settings | Low |
+| Export Fit Sheet | PDF with all measurements, settings, and diagram | Low |
+
+### Visual Bike Fit Diagram
+
+Interactive SVG visualization that displays:
+- **Frame geometry** - Accurate representation based on stack, reach, angles
+- **Fit position** - Saddle height, handlebar position, stem/spacer setup
+- **Rider silhouette** - Optional overlay showing body position on bike
+- **Measurements** - Annotated dimensions with highlighting
+
+```typescript
+interface BikeFitDiagramProps {
+  geometry: {
+    stackMm: number;
+    reachMm: number;
+    seatTubeAngle: number;
+    headTubeAngle: number;
+    seatTubeLengthMm?: number;
+    headTubeLengthMm?: number;
+    chainstayLengthMm?: number;
+    wheelbaseMm?: number;
+  };
+  fitPosition?: {
+    saddleHeight: number;      // BB to saddle (mm)
+    saddleSetback: number;     // Behind BB
+    handlebarStack: number;    // BB to handlebar
+    handlebarReach: number;    // BB to handlebar
+    stemLength?: number;
+    stemAngle?: number;
+    spacerStack?: number;
+  };
+  rider?: {
+    inseam?: number;
+    torsoLength?: number;
+    armLength?: number;
+    shoulderWidth?: number;
+  };
+  showMeasurements?: boolean;
+  showRider?: boolean;
+}
+```
+
+**Use Cases:**
+- Bike detail page - Show frame with current fit setup
+- Bike wizard - Preview fit calculations on new frame
+- Fit comparison - Overlay two positions to visualize differences
+- Frame selection - Compare how rider fits on different bikes
 
 **Zinn Measurement System:**
 
@@ -1510,6 +1576,59 @@ performance_metrics (daily aggregates)
 
 ---
 
+## Layout Builder (Web App)
+
+The Layout Builder allows users to design custom data screens for the mobile app with a visual drag-and-drop interface.
+
+### Preconfigured Screen Templates
+
+Allow users to quickly get started with professionally designed screen layouts that can be used as-is or customized.
+
+| Feature | Description | Priority | Status |
+|---------|-------------|----------|--------|
+| Screen Template Library | Collection of pre-built screen layouts for common use cases | High | Planned |
+| Template Categories | Organize templates by use case (climbing, racing, training, casual) | High | Planned |
+| One-Click Apply | Apply template directly to create a new screen | High | Planned |
+| Clone & Edit | Copy template and customize widgets, colors, layout | High | Planned |
+| Community Templates | Share and discover user-created layouts | Medium | Planned |
+| Import/Export | Share templates as JSON files | Low | Planned |
+
+**Template Categories:**
+
+- **Road Racing** - Focus on power, HR zones, speed, gap times
+- **Climbing** - Gradient, elevation, VAM, W/kg
+- **Time Trial** - Power targets, lap times, aerodynamic data
+- **Endurance/Base** - HR zones, time in zone, TSS
+- **Gravel/Adventure** - Navigation focused, battery life, distance to go
+- **Group Ride** - Social metrics, easy-read large numbers
+- **Training Intervals** - Workout targets, interval timer, compliance
+- **Minimal** - Clean, distraction-free essential data only
+
+**Template Structure:**
+
+```typescript
+interface ScreenTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: 'racing' | 'climbing' | 'tt' | 'endurance' | 'gravel' | 'group' | 'training' | 'minimal';
+  thumbnail: string;          // Preview image URL
+  author: string;
+  isOfficial: boolean;        // Peloton-provided vs community
+  layout: {
+    columns: number;
+    rows: number;
+    widgets: WidgetPlacement[];
+  };
+  colorScheme?: 'light' | 'dark' | 'high_contrast';
+  tags: string[];
+  downloadCount?: number;
+  rating?: number;
+}
+```
+
+---
+
 ## Phase 0: Mobile App Foundation (Expo)
 
 The mobile app is the core product - a bike computer that runs on iOS and Android. This phase focuses on building a functional mobile app before adding advanced features.
@@ -1529,6 +1648,7 @@ The mobile app is the core product - a bike computer that runs on iOS and Androi
 | Background Location | Continue tracking when app backgrounded | High |
 | Haptic Feedback | Vibration for lap markers, alerts | Medium |
 | Voice Announcements | Audio for metrics at intervals | Medium |
+| **LiDAR Body Scanning** | Use iOS LiDAR to measure body dimensions for bike fit | Medium |
 
 ### Mobile Tech Stack
 
@@ -1570,6 +1690,108 @@ The mobile app is the core product - a bike computer that runs on iOS and Androi
 | Speed/Cadence | 0x1816 | CSC Measurement (0x2A5B) |
 | SRAM AXS | Proprietary | Gear position, battery |
 
+### LiDAR Body Measurement System
+
+Use iOS LiDAR (iPhone Pro/iPad Pro) to automatically measure body dimensions for bike fitting. This eliminates the need for manual measurements and provides more accurate, repeatable data.
+
+**Supported Measurements:**
+- Inseam length (floor to crotch)
+- Torso length
+- Arm length and reach
+- Shoulder width
+- Leg segment lengths (thigh, lower leg)
+- Standing height
+
+**Technical Approach:**
+
+```typescript
+interface LiDARMeasurementSession {
+  id: string;
+  userId: string;
+  capturedAt: Date;
+  deviceModel: string;
+
+  // Captured body landmarks
+  landmarks: {
+    // Head and torso
+    headTop: Point3D;
+    sternumNotch: Point3D;
+    shoulderLeft: Point3D;
+    shoulderRight: Point3D;
+
+    // Hips and legs
+    hipLeft: Point3D;
+    hipRight: Point3D;
+    kneeLeft: Point3D;
+    kneeRight: Point3D;
+    ankleLeft: Point3D;
+    ankleRight: Point3D;
+    heelLeft: Point3D;
+    heelRight: Point3D;
+
+    // Arms
+    elbowLeft: Point3D;
+    elbowRight: Point3D;
+    wristLeft: Point3D;
+    wristRight: Point3D;
+
+    // Reference points
+    floorPlane: Plane3D;
+    crotchPoint: Point3D;
+  };
+
+  // Calculated measurements (mm)
+  measurements: {
+    inseam: number;
+    torsoLength: number;
+    armLength: number;
+    forearmLength: number;
+    shoulderWidth: number;
+    thighLength: number;
+    lowerLegLength: number;
+    standingHeight: number;
+  };
+
+  // Quality metrics
+  confidence: number;         // 0-100
+  lightingQuality: 'poor' | 'fair' | 'good' | 'excellent';
+  scanCoverage: number;       // Percentage of body captured
+}
+
+interface Point3D {
+  x: number;
+  y: number;
+  z: number;
+  confidence: number;
+}
+```
+
+**Implementation Requirements:**
+- iOS 14+ with LiDAR-equipped device (iPhone 12 Pro+, iPad Pro 2020+)
+- ARKit for scene understanding and body detection
+- RealityKit for 3D mesh capture
+- Vision framework for body pose estimation (fallback for non-LiDAR devices)
+
+**User Flow:**
+1. User selects "Measure Body" from profile settings
+2. App guides user through positioning (stand against wall, arms at sides)
+3. User slowly rotates while app captures LiDAR depth data
+4. App processes scan to identify body landmarks
+5. Measurements calculated and displayed for confirmation
+6. User can adjust any measurements manually if needed
+7. Data synced to web app and used for fit calculations
+
+**Fallback for Non-LiDAR Devices:**
+- Use ARKit body tracking with camera-only depth estimation
+- Guide user through manual measurement with AR overlays
+- Lower confidence scores for camera-only measurements
+
+**Privacy Considerations:**
+- 3D scan data processed entirely on-device
+- Only extracted measurements (numbers) stored in cloud
+- Raw mesh data never leaves device
+- User can delete measurement history
+
 ### Implementation Steps
 
 1. **Expo Configuration**
@@ -1597,6 +1819,314 @@ The mobile app is the core product - a bike computer that runs on iOS and Androi
    - Fetch layouts from Supabase
    - Cache for offline use
    - Sync completed rides
+
+---
+
+## Phase 6: Clubs & Teams
+
+Social features for group cycling, team management, and community building.
+
+### Club Management
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Create Club | Start a new club with name, description, logo | High |
+| Join Club | Request to join or accept invitation | High |
+| Member Roles | Admin, moderator, member permissions | High |
+| Club Profile | Public page with stats, members, recent activity | High |
+| Private Clubs | Invite-only clubs for teams | Medium |
+| Club Settings | Privacy, join requirements, branding | Medium |
+| Multiple Clubs | Users can belong to multiple clubs | Medium |
+| Club Search | Discover clubs by location, type, size | Low |
+
+### Shared Resources
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Club Routes | Shared route library for members | High |
+| Club Events | Group rides with RSVP | High |
+| Training Plans | Team training plans and workouts | Medium |
+| Club Announcements | News and updates from admins | Medium |
+| Shared Layouts | Club-branded data screen templates | Low |
+| Equipment Pool | Shared bike/wheel tracking for teams | Low |
+
+### Social Features
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Activity Feed | See club members' recent rides | High |
+| Leaderboards | Club rankings by distance, elevation, TSS | High |
+| Challenges | Time-limited club competitions | Medium |
+| Comments & Kudos | Interact with member activities | Medium |
+| Club Chat | In-app messaging for members | Medium |
+| Ride Invites | Invite members to upcoming rides | Medium |
+| Segments | Club-specific segments and KOMs | Low |
+
+### Team Analytics
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| Team Dashboard | Aggregate stats for club | High |
+| Weekly Summary | Club activity digest | Medium |
+| Member Progress | Individual member metrics over time | Medium |
+| Training Load | Team CTL/ATL/TSB overview | Medium |
+| Comparative Stats | Member vs member analytics | Low |
+| Export Reports | PDF/CSV team reports | Low |
+
+### Data Model
+
+```typescript
+interface Club {
+  id: string;
+  name: string;
+  description: string;
+  logoUrl?: string;
+  coverImageUrl?: string;
+  type: 'club' | 'team' | 'shop' | 'event';
+  sport: 'road' | 'mtb' | 'gravel' | 'all';
+  location?: {
+    city: string;
+    region: string;
+    country: string;
+    coordinates?: [number, number];
+  };
+  privacy: 'public' | 'private' | 'secret';
+  joinPolicy: 'open' | 'request' | 'invite_only';
+  memberCount: number;
+  createdAt: Date;
+  createdBy: string;
+  settings: ClubSettings;
+}
+
+interface ClubMembership {
+  id: string;
+  clubId: string;
+  userId: string;
+  role: 'owner' | 'admin' | 'moderator' | 'member';
+  status: 'active' | 'pending' | 'invited' | 'banned';
+  joinedAt: Date;
+  invitedBy?: string;
+}
+
+interface ClubEvent {
+  id: string;
+  clubId: string;
+  name: string;
+  description: string;
+  eventType: 'group_ride' | 'race' | 'training' | 'social';
+  startTime: Date;
+  duration?: number;           // minutes
+  routeId?: string;
+  meetingPoint?: {
+    name: string;
+    coordinates: [number, number];
+  };
+  maxParticipants?: number;
+  rsvps: {
+    going: string[];
+    maybe: string[];
+    notGoing: string[];
+  };
+  createdBy: string;
+  isRecurring: boolean;
+  recurrenceRule?: string;     // RRULE format
+}
+
+interface ClubChallenge {
+  id: string;
+  clubId: string;
+  name: string;
+  description: string;
+  type: 'distance' | 'elevation' | 'time' | 'rides' | 'streak';
+  target: number;
+  unit: string;
+  startDate: Date;
+  endDate: Date;
+  leaderboard: {
+    userId: string;
+    value: number;
+    rank: number;
+  }[];
+  prizes?: string[];
+  createdBy: string;
+}
+
+interface ClubLeaderboard {
+  clubId: string;
+  period: 'week' | 'month' | 'year' | 'all_time';
+  metric: 'distance' | 'elevation' | 'time' | 'tss' | 'rides';
+  entries: {
+    userId: string;
+    displayName: string;
+    value: number;
+    rank: number;
+    change: number;          // rank change from previous period
+  }[];
+  updatedAt: Date;
+}
+```
+
+### Database Schema
+
+```sql
+clubs
+├── id               UUID PRIMARY KEY
+├── name             TEXT NOT NULL
+├── slug             TEXT UNIQUE
+├── description      TEXT
+├── logo_url         TEXT
+├── cover_image_url  TEXT
+├── type             TEXT DEFAULT 'club'
+├── sport            TEXT DEFAULT 'all'
+├── city             TEXT
+├── region           TEXT
+├── country          TEXT
+├── coordinates      POINT
+├── privacy          TEXT DEFAULT 'public'
+├── join_policy      TEXT DEFAULT 'open'
+├── member_count     INTEGER DEFAULT 0
+├── settings         JSONB DEFAULT '{}'
+├── created_by       UUID REFERENCES auth.users
+├── created_at       TIMESTAMP DEFAULT NOW()
+└── updated_at       TIMESTAMP
+
+club_memberships
+├── id               UUID PRIMARY KEY
+├── club_id          UUID REFERENCES clubs ON DELETE CASCADE
+├── user_id          UUID REFERENCES auth.users ON DELETE CASCADE
+├── role             TEXT DEFAULT 'member'
+├── status           TEXT DEFAULT 'active'
+├── joined_at        TIMESTAMP DEFAULT NOW()
+├── invited_by       UUID REFERENCES auth.users
+├── UNIQUE(club_id, user_id)
+
+club_routes
+├── id               UUID PRIMARY KEY
+├── club_id          UUID REFERENCES clubs ON DELETE CASCADE
+├── route_id         UUID REFERENCES routes ON DELETE CASCADE
+├── added_by         UUID REFERENCES auth.users
+├── added_at         TIMESTAMP DEFAULT NOW()
+├── is_featured      BOOLEAN DEFAULT false
+├── notes            TEXT
+├── UNIQUE(club_id, route_id)
+
+club_events
+├── id               UUID PRIMARY KEY
+├── club_id          UUID REFERENCES clubs ON DELETE CASCADE
+├── name             TEXT NOT NULL
+├── description      TEXT
+├── event_type       TEXT DEFAULT 'group_ride'
+├── start_time       TIMESTAMP NOT NULL
+├── duration_minutes INTEGER
+├── route_id         UUID REFERENCES routes
+├── meeting_point    JSONB
+├── max_participants INTEGER
+├── is_recurring     BOOLEAN DEFAULT false
+├── recurrence_rule  TEXT
+├── created_by       UUID REFERENCES auth.users
+├── created_at       TIMESTAMP DEFAULT NOW()
+
+club_event_rsvps
+├── id               UUID PRIMARY KEY
+├── event_id         UUID REFERENCES club_events ON DELETE CASCADE
+├── user_id          UUID REFERENCES auth.users ON DELETE CASCADE
+├── status           TEXT DEFAULT 'going'
+├── responded_at     TIMESTAMP DEFAULT NOW()
+├── UNIQUE(event_id, user_id)
+
+club_challenges
+├── id               UUID PRIMARY KEY
+├── club_id          UUID REFERENCES clubs ON DELETE CASCADE
+├── name             TEXT NOT NULL
+├── description      TEXT
+├── challenge_type   TEXT NOT NULL
+├── target           DECIMAL NOT NULL
+├── unit             TEXT NOT NULL
+├── start_date       DATE NOT NULL
+├── end_date         DATE NOT NULL
+├── prizes           TEXT[]
+├── created_by       UUID REFERENCES auth.users
+├── created_at       TIMESTAMP DEFAULT NOW()
+
+club_challenge_progress
+├── id               UUID PRIMARY KEY
+├── challenge_id     UUID REFERENCES club_challenges ON DELETE CASCADE
+├── user_id          UUID REFERENCES auth.users ON DELETE CASCADE
+├── current_value    DECIMAL DEFAULT 0
+├── last_updated     TIMESTAMP DEFAULT NOW()
+├── UNIQUE(challenge_id, user_id)
+
+club_announcements
+├── id               UUID PRIMARY KEY
+├── club_id          UUID REFERENCES clubs ON DELETE CASCADE
+├── title            TEXT NOT NULL
+├── content          TEXT NOT NULL
+├── is_pinned        BOOLEAN DEFAULT false
+├── created_by       UUID REFERENCES auth.users
+├── created_at       TIMESTAMP DEFAULT NOW()
+
+-- Materialized view for leaderboards (refresh periodically)
+CREATE MATERIALIZED VIEW club_leaderboards AS
+SELECT
+  club_id,
+  user_id,
+  'week' as period,
+  SUM(distance_m) / 1000 as total_distance_km,
+  SUM(elevation_gain_m) as total_elevation_m,
+  SUM(elapsed_time_s) / 3600 as total_hours,
+  COUNT(*) as ride_count
+FROM rides r
+JOIN club_memberships cm ON r.user_id = cm.user_id
+WHERE r.created_at > NOW() - INTERVAL '7 days'
+  AND cm.status = 'active'
+GROUP BY club_id, user_id;
+```
+
+### Club Features Workflow
+
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                        Club Experience                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌─────────────────┐                                                │
+│  │  Discover Clubs │                                                │
+│  │  ─────────────  │                                                │
+│  │  🔍 Search by   │                                                │
+│  │    location,    │                                                │
+│  │    type, name   │                                                │
+│  └────────┬────────┘                                                │
+│           │                                                          │
+│           ▼                                                          │
+│  ┌─────────────────┐     ┌─────────────────┐                       │
+│  │   Club Page     │     │  Create Club    │                       │
+│  │  ─────────────  │     │  ────────────   │                       │
+│  │  📊 Stats       │     │  Name, logo,    │                       │
+│  │  👥 Members     │     │  description,   │                       │
+│  │  🗺️ Routes     │     │  settings       │                       │
+│  │  📅 Events      │     └─────────────────┘                       │
+│  │  [Join Club]    │                                                │
+│  └────────┬────────┘                                                │
+│           │                                                          │
+│           ▼                                                          │
+│  ┌─────────────────────────────────────────────────────────┐       │
+│  │                    Club Dashboard                         │       │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │       │
+│  │  │  Feed    │  │  Routes  │  │  Events  │  │  Members │ │       │
+│  │  │  ──────  │  │  ──────  │  │  ──────  │  │  ──────  │ │       │
+│  │  │ Recent   │  │ Shared   │  │ Upcoming │  │ Rankings │ │       │
+│  │  │ activity │  │ routes   │  │ rides    │  │ & roles  │ │       │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │       │
+│  │                                                           │       │
+│  │  ┌──────────────────────────────────────────────────────┐│       │
+│  │  │              Active Challenges                        ││       │
+│  │  │  🏆 January Distance: 847/1000 km  [Your rank: #3]   ││       │
+│  │  │  ⛰️ Climb Everest: 4,200/8,848 m   [Your rank: #7]   ││       │
+│  │  └──────────────────────────────────────────────────────┘│       │
+│  └─────────────────────────────────────────────────────────┘       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useBikes, useBikeDetails } from '@/hooks/useBikes';
-import {
+import type {
   BikeInput,
   BikeType,
   FrameMaterial,
+  BikeGeometryInput,
+  BikeTireInput,
+} from '@peloton/shared';
+import {
   BIKE_TYPE_LABELS,
   FRAME_MATERIAL_LABELS,
 } from '@peloton/shared';
@@ -328,7 +332,7 @@ export function BikeEditor() {
 export function BikeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { bike, geometry, fitPosition, drivetrain, tires, loading, error } = useBikeDetails(id || null);
+  const { bike, geometry, fitPosition, drivetrain, tires, loading, error, updateGeometry, updateTire } = useBikeDetails(id || null);
   const [activeTab, setActiveTab] = useState<'overview' | 'geometry' | 'fit' | 'drivetrain' | 'tires'>('overview');
 
   if (loading) {
@@ -419,10 +423,10 @@ export function BikeDetail() {
       {/* Tab content */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         {activeTab === 'overview' && (
-          <OverviewTab bike={bike} geometry={geometry} fitPosition={fitPosition} drivetrain={drivetrain} tires={tires} />
+          <OverviewTab bike={bike} geometry={geometry} fitPosition={fitPosition} drivetrain={drivetrain} tires={tires} onNavigateTab={setActiveTab} />
         )}
         {activeTab === 'geometry' && (
-          <GeometryTab geometry={geometry} bikeId={bike.id} />
+          <GeometryTab geometry={geometry} bikeId={bike.id} updateGeometry={updateGeometry} />
         )}
         {activeTab === 'fit' && (
           <FitTab fitPosition={fitPosition} bikeId={bike.id} />
@@ -431,7 +435,7 @@ export function BikeDetail() {
           <DrivetrainTab drivetrain={drivetrain} bikeId={bike.id} />
         )}
         {activeTab === 'tires' && (
-          <TiresTab tires={tires} bikeId={bike.id} />
+          <TiresTab tires={tires} bikeId={bike.id} updateTire={updateTire} />
         )}
       </div>
     </div>
@@ -439,12 +443,13 @@ export function BikeDetail() {
 }
 
 // Tab components (simplified for now)
-function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires }: {
+function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires, onNavigateTab }: {
   bike: ReturnType<typeof useBikeDetails>['bike'];
   geometry: ReturnType<typeof useBikeDetails>['geometry'];
   fitPosition: ReturnType<typeof useBikeDetails>['fitPosition'];
   drivetrain: ReturnType<typeof useBikeDetails>['drivetrain'];
   tires: ReturnType<typeof useBikeDetails>['tires'];
+  onNavigateTab: (tab: 'geometry' | 'fit' | 'drivetrain' | 'tires') => void;
 }) {
   return (
     <div className="space-y-6">
@@ -497,6 +502,7 @@ function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires }: {
               geometry.stackMm && 'Stack',
               geometry.reachMm && 'Reach',
             ].filter(Boolean).length : 0}
+            onClick={() => onNavigateTab('geometry')}
           />
           <StatusCard
             label="Fit Position"
@@ -505,6 +511,7 @@ function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires }: {
               fitPosition.saddleHeightMm && 'Saddle',
               fitPosition.stemLengthMm && 'Stem',
             ].filter(Boolean).length : 0}
+            onClick={() => onNavigateTab('fit')}
           />
           <StatusCard
             label="Drivetrain"
@@ -513,11 +520,13 @@ function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires }: {
               drivetrain.groupsetBrand && 'Groupset',
               drivetrain.crankLengthMm && 'Crank',
             ].filter(Boolean).length : 0}
+            onClick={() => onNavigateTab('drivetrain')}
           />
           <StatusCard
             label="Tires"
             hasData={tires.length > 0}
             fields={tires.length}
+            onClick={() => onNavigateTab('tires')}
           />
         </div>
       </div>
@@ -525,24 +534,140 @@ function OverviewTab({ bike, geometry, fitPosition, drivetrain, tires }: {
   );
 }
 
-function StatusCard({ label, hasData, fields }: { label: string; hasData: boolean; fields: number }) {
+function StatusCard({ label, hasData, fields, onClick }: { label: string; hasData: boolean; fields: number; onClick?: () => void }) {
   return (
-    <div className={`p-3 rounded-lg border ${hasData ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+    <button
+      onClick={onClick}
+      className={`p-3 rounded-lg border text-left transition-colors hover:border-blue-300 hover:bg-blue-50 ${hasData ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}
+    >
       <p className="text-sm font-medium">{label}</p>
       <p className={`text-xs ${hasData ? 'text-green-600' : 'text-gray-500'}`}>
         {hasData ? `${fields} field${fields !== 1 ? 's' : ''} set` : 'Not configured'}
       </p>
-    </div>
+    </button>
   );
 }
 
-function GeometryTab({ geometry, bikeId: _bikeId }: { geometry: ReturnType<typeof useBikeDetails>['geometry']; bikeId: string }) {
+function GeometryTab({ geometry, bikeId: _bikeId, updateGeometry }: {
+  geometry: ReturnType<typeof useBikeDetails>['geometry'];
+  bikeId: string;
+  updateGeometry: (data: BikeGeometryInput) => Promise<boolean>;
+}) {
+  const [editing, setEditing] = useState(!geometry);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState<BikeGeometryInput>({
+    stackMm: geometry?.stackMm ?? null,
+    reachMm: geometry?.reachMm ?? null,
+    seatTubeLengthMm: geometry?.seatTubeLengthMm ?? null,
+    seatTubeAngle: geometry?.seatTubeAngle ?? null,
+    effectiveTopTubeMm: geometry?.effectiveTopTubeMm ?? null,
+    headTubeLengthMm: geometry?.headTubeLengthMm ?? null,
+    headTubeAngle: geometry?.headTubeAngle ?? null,
+    chainstayLengthMm: geometry?.chainstayLengthMm ?? null,
+    wheelbaseMm: geometry?.wheelbaseMm ?? null,
+    bbDropMm: geometry?.bbDropMm ?? null,
+    forkRakeMm: geometry?.forkRakeMm ?? null,
+    trailMm: geometry?.trailMm ?? null,
+    source: geometry?.source ?? 'manual',
+  });
+
+  useEffect(() => {
+    if (geometry) {
+      setFormData({
+        stackMm: geometry.stackMm,
+        reachMm: geometry.reachMm,
+        seatTubeLengthMm: geometry.seatTubeLengthMm,
+        seatTubeAngle: geometry.seatTubeAngle,
+        effectiveTopTubeMm: geometry.effectiveTopTubeMm,
+        headTubeLengthMm: geometry.headTubeLengthMm,
+        headTubeAngle: geometry.headTubeAngle,
+        chainstayLengthMm: geometry.chainstayLengthMm,
+        wheelbaseMm: geometry.wheelbaseMm,
+        bbDropMm: geometry.bbDropMm,
+        forkRakeMm: geometry.forkRakeMm,
+        trailMm: geometry.trailMm,
+        source: geometry.source,
+      });
+    }
+  }, [geometry]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const success = await updateGeometry(formData);
+    setSaving(false);
+    if (success) {
+      setEditing(false);
+    }
+  };
+
+  const GeometryInput = ({ label, field, unit, step = 1 }: { label: string; field: keyof BikeGeometryInput; unit: string; step?: number }) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label} ({unit})</label>
+      {editing ? (
+        <input
+          type="number"
+          value={(formData[field] as number | null) ?? ''}
+          onChange={(e) => setFormData({ ...formData, [field]: e.target.value ? parseFloat(e.target.value) : null })}
+          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+          step={step}
+        />
+      ) : (
+        <p className="text-sm font-medium">{(formData[field] as number | null) ?? '-'}</p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="text-center py-8 text-gray-500">
-      <p>Geometry editor coming soon</p>
-      <p className="text-sm mt-2">
-        {geometry ? 'Edit geometry measurements or import from GeometryGeeks' : 'Add geometry measurements or import from GeometryGeeks'}
-      </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Frame Geometry</h3>
+        {!editing ? (
+          <button
+            onClick={() => setEditing(true)}
+            className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700"
+          >
+            Edit
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setEditing(false)}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+        <GeometryInput label="Stack" field="stackMm" unit="mm" />
+        <GeometryInput label="Reach" field="reachMm" unit="mm" />
+        <GeometryInput label="Effective Top Tube" field="effectiveTopTubeMm" unit="mm" />
+        <GeometryInput label="Seat Tube Length" field="seatTubeLengthMm" unit="mm" />
+        <GeometryInput label="Seat Tube Angle" field="seatTubeAngle" unit="°" step={0.1} />
+        <GeometryInput label="Head Tube Length" field="headTubeLengthMm" unit="mm" />
+        <GeometryInput label="Head Tube Angle" field="headTubeAngle" unit="°" step={0.1} />
+        <GeometryInput label="Chainstay" field="chainstayLengthMm" unit="mm" />
+        <GeometryInput label="Wheelbase" field="wheelbaseMm" unit="mm" />
+        <GeometryInput label="BB Drop" field="bbDropMm" unit="mm" />
+        <GeometryInput label="Fork Rake" field="forkRakeMm" unit="mm" />
+        <GeometryInput label="Trail" field="trailMm" unit="mm" />
+      </div>
+
+      {geometry?.source && (
+        <p className="text-xs text-gray-500">
+          Source: {geometry.source === 'geometry_geeks' ? 'GeometryGeeks' : 'Manual entry'}
+          {geometry.importedAt && ` • Imported ${new Date(geometry.importedAt).toLocaleDateString()}`}
+        </p>
+      )}
     </div>
   );
 }
@@ -569,13 +694,147 @@ function DrivetrainTab({ drivetrain, bikeId: _bikeId }: { drivetrain: ReturnType
   );
 }
 
-function TiresTab({ tires, bikeId: _bikeId }: { tires: ReturnType<typeof useBikeDetails>['tires']; bikeId: string }) {
+function TiresTab({ tires, bikeId: _bikeId, updateTire }: {
+  tires: ReturnType<typeof useBikeDetails>['tires'];
+  bikeId: string;
+  updateTire: (data: BikeTireInput) => Promise<boolean>;
+}) {
+  const [editingPosition, setEditingPosition] = useState<'front' | 'rear' | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState<Partial<BikeTireInput>>({});
+
+  const frontTire = tires.find(t => t.position === 'front');
+  const rearTire = tires.find(t => t.position === 'rear');
+
+  const startEdit = (position: 'front' | 'rear') => {
+    const existing = position === 'front' ? frontTire : rearTire;
+    setFormData({
+      position,
+      brand: existing?.brand ?? '',
+      model: existing?.model ?? '',
+      widthMm: existing?.widthMm ?? 28,
+      tireType: existing?.tireType ?? 'clincher',
+      currentPressurePsi: existing?.currentPressurePsi ?? null,
+    });
+    setEditingPosition(position);
+  };
+
+  const handleSave = async () => {
+    if (!formData.position || !formData.brand || !formData.model) return;
+    setSaving(true);
+    const success = await updateTire(formData as BikeTireInput);
+    setSaving(false);
+    if (success) {
+      setEditingPosition(null);
+    }
+  };
+
+  const TireCard = ({ position, tire }: { position: 'front' | 'rear'; tire: typeof frontTire }) => (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-medium capitalize">{position} Tire</h4>
+        <button
+          onClick={() => startEdit(position)}
+          className="text-sm text-blue-600 hover:text-blue-700"
+        >
+          {tire ? 'Edit' : 'Add'}
+        </button>
+      </div>
+      {tire ? (
+        <div className="space-y-2 text-sm">
+          <p><span className="text-gray-500">Brand:</span> {tire.brand}</p>
+          <p><span className="text-gray-500">Model:</span> {tire.model}</p>
+          <p><span className="text-gray-500">Width:</span> {tire.widthMm}mm</p>
+          {tire.tireType && <p><span className="text-gray-500">Type:</span> {tire.tireType}</p>}
+          {tire.currentPressurePsi && <p><span className="text-gray-500">Pressure:</span> {tire.currentPressurePsi} PSI</p>}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400">Not configured</p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="text-center py-8 text-gray-500">
-      <p>Tire editor coming soon</p>
-      <p className="text-sm mt-2">
-        {tires.length > 0 ? 'Edit your tire setup' : 'Add front and rear tire information'}
-      </p>
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Tires</h3>
+
+      {editingPosition ? (
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+          <h4 className="font-medium capitalize mb-4">Edit {editingPosition} Tire</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Brand *</label>
+              <input
+                type="text"
+                value={formData.brand ?? ''}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                placeholder="e.g., Continental"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Model *</label>
+              <input
+                type="text"
+                value={formData.model ?? ''}
+                onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+                placeholder="e.g., GP5000"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Width (mm)</label>
+              <input
+                type="number"
+                value={formData.widthMm ?? ''}
+                onChange={(e) => setFormData({ ...formData, widthMm: e.target.value ? parseInt(e.target.value) : undefined })}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+              <select
+                value={formData.tireType ?? 'clincher'}
+                onChange={(e) => setFormData({ ...formData, tireType: e.target.value as 'clincher' | 'tubeless' | 'tubular' })}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              >
+                <option value="clincher">Clincher</option>
+                <option value="tubeless">Tubeless</option>
+                <option value="tubular">Tubular</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Pressure (PSI)</label>
+              <input
+                type="number"
+                value={formData.currentPressurePsi ?? ''}
+                onChange={(e) => setFormData({ ...formData, currentPressurePsi: e.target.value ? parseFloat(e.target.value) : null })}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setEditingPosition(null)}
+              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !formData.brand || !formData.model}
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4">
+          <TireCard position="front" tire={frontTire} />
+          <TireCard position="rear" tire={rearTire} />
+        </div>
+      )}
     </div>
   );
 }

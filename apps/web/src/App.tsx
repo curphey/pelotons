@@ -17,7 +17,8 @@ import {
   WidgetReference,
 } from './components/Docs';
 import { ProfilePage } from './components/Profile';
-import { BikeList, BikeEditor, BikeDetail } from './components/ServiceCourse';
+import { BikeList, BikeEditor, BikeDetail, BikeWizard } from './components/ServiceCourse';
+import { SettingsPage, RwgpsCallback } from './components/Settings';
 
 function HomePage() {
   return (
@@ -207,6 +208,25 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      {/* Settings */}
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <SettingsPage />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/rwgps/callback"
+        element={
+          <ProtectedRoute>
+            <RwgpsCallback />
+          </ProtectedRoute>
+        }
+      />
       {/* Service Course - Bikes */}
       <Route
         path="/bikes"
@@ -223,7 +243,7 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AppShell>
-              <BikeEditor />
+              <BikeWizard />
             </AppShell>
           </ProtectedRoute>
         }

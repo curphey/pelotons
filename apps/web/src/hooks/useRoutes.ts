@@ -29,6 +29,10 @@ function dbToRoute(db: DbRoute): Route {
     routeCoordinates: parseCoordinates(db.route_coordinates) ?? undefined,
     createdAt: db.created_at,
     updatedAt: db.updated_at,
+    // RideWithGPS sync fields
+    rwgpsId: db.rwgps_id ?? undefined,
+    rwgpsSyncedAt: db.rwgps_synced_at ?? undefined,
+    rwgpsSyncDirection: db.rwgps_sync_direction ?? undefined,
   };
 }
 

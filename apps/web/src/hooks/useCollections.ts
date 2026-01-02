@@ -18,6 +18,9 @@ function dbToCollection(db: DbRouteCollection): RouteCollection {
     description: db.description ?? undefined,
     createdAt: db.created_at,
     updatedAt: db.updated_at,
+    // RideWithGPS sync fields
+    rwgpsId: db.rwgps_id ?? undefined,
+    rwgpsSyncedAt: db.rwgps_synced_at ?? undefined,
   };
 }
 
@@ -34,6 +37,10 @@ function dbToRoute(db: DbRoute): Route {
     routeCoordinates: db.route_coordinates as [number, number][] | undefined,
     createdAt: db.created_at,
     updatedAt: db.updated_at,
+    // RideWithGPS sync fields
+    rwgpsId: db.rwgps_id ?? undefined,
+    rwgpsSyncedAt: db.rwgps_synced_at ?? undefined,
+    rwgpsSyncDirection: db.rwgps_sync_direction ?? undefined,
   };
 }
 
